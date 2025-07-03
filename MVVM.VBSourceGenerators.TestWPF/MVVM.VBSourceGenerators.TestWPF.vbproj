@@ -21,12 +21,11 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="IridiumIO.MVVM.VBSourceGenerators" Version="0.1.0" />
   </ItemGroup>
 
-  <!--<ItemGroup>
+  <ItemGroup>
     <Analyzer Include="..\MVVM.VBSourceGenerators.Generators\bin\Debug\netstandard2.0\MVVM.VBSourceGenerators.Generators.dll" />
-  </ItemGroup>-->
+  </ItemGroup>
 
   <!--VB.NET is a second-rate citizen so we can't see generated files in the solution explorer. This dumps them to the /obj/Generated folder -->
 <PropertyGroup>

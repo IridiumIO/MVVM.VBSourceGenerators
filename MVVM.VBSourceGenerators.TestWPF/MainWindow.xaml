@@ -14,6 +14,7 @@
         <TextBlock Text="{Binding LastName}" Width="200" Height="60" />
 
         <TextBlock Text="{Binding FullName}"/>
+        <Button Command="{Binding SetAsyncFunctionCommand}" Content="Hello" CommandParameter="{Binding}"/>
 
     </StackPanel>
 </Window>
