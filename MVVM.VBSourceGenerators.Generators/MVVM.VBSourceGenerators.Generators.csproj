@@ -10,13 +10,23 @@
     <PackageId>IridiumIO.MVVM.VBSourceGenerators</PackageId>
     <Version>0.1.0</Version>
     <Authors>IridiumIO</Authors>
-    <Description>The MVVM Community Toolkit's source generators only work in C#. This package augments the toolkit to add generators for VB.NET. 
-    Requires the CommunityToolkit.MVVM</Description>
+    <Copyright>Copyright © 2025 IridiumIO</Copyright>
+    <PackageProjectUrl>https://github.com/IridiumIO/MVVM.VBSourceGenerators</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/IridiumIO/MVVM.VBSourceGenerators</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>source-generator;mvvm;community-toolkit;mvvm-toolkit</PackageTags>
+    
+    <Description>The Community Toolkit.MVVM source generators only work in C#. This package augments the toolkit to allow some of the generators to work for VB.NET.</Description>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>
   </PropertyGroup>
+  
+  <ItemGroup>
+  <None Include="..\Readme.md" Pack="true" PackagePath="" />
+</ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0">
