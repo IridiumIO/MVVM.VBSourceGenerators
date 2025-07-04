@@ -14,9 +14,9 @@
         <TextBlock Text="{Binding LastName}" Width="200" Height="60" />
 
         <TextBlock Text="{Binding FullName}"/>
-        <Button Command="{Binding TestFullCommand}" Content="Hello" CommandParameter="{Binding ElementName=Hello, Path=Text}" />
+        <Button Command="{Binding SetAsyncFunctionCommand}" Content="Hello" CommandParameter="{Binding ElementName=Hello, Path=Text}" />
         <TextBlock Text="{Binding SetAsyncFunctionCommand.ExecutionTask.Status}"/>
-        <Button Content="Cancel Other Async Commands" Command="{Binding CancelOtherAsyncCommandsCommand}"/>
+        <Button Content="Cancel Other Async Commands" Command="{Binding SetAsyncFunctionCancelCommand}"/>
 
     </StackPanel>
 </Window>

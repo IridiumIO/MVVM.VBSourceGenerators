@@ -70,29 +70,12 @@ Partial Public Class MainWindowViewModel : Inherits ObservableObject
         Debug.WriteLine($"SetAsyncSub called")
     End Sub
 
-    <RelayCommand>
-    Public Async Function SetAsyncFunction(str As String, cToken As CancellationToken) As Task(Of String)
+    <RelayCommand(IncludeCancelCommand:=False, AllowConcurrentExecutions:=True, FlowExceptionsToTaskScheduler:=True)>
+    Public Async Function SetAsyncFunction() As Task(Of String)
+
         Await Task.Delay(1000)
         Debug.WriteLine($"SetAsyncFunction called")
         Return "Hello from async function"
-    End Function
-
-    Public ReadOnly Property SetAsyncFunctionCommand1 As CommunityToolkit.Mvvm.Input.IAsyncRelayCommand = New AsyncRelayCommand(Of String)(AddressOf SetAsyncFunction)
-    Public ReadOnly Property SetAsyncFunctionCommand2 As CommunityToolkit.Mvvm.Input.IAsyncRelayCommand = New AsyncRelayCommand(Of String)(New Func(Of String, CancellationToken, Task)(AddressOf SetAsyncFunction))
-
-    Public ReadOnly Property TestFullCommand As IRelayCommand = New AsyncRelayCommand(Of String)(AddressOf TestFull, AddressOf CanTestFull)
-
-    Private Async Function TestFull(val As String, ctoken As CancellationToken) As Task
-        Await Task.Delay(1000) ' Simulate some delay for the example
-        Throw New Exception("FUck")
-        Debug.WriteLine($"TestFull called with: {val}")
-    End Function
-
-    Private Function CanTestFull(val As String) As Boolean
-        If val = "Test" Then
-            Return True
-        End If
-        Return False
     End Function
 
 

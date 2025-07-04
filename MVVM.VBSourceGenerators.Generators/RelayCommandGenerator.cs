@@ -57,7 +57,7 @@ public class RelayCommandGenerator : IIncrementalGenerator
 
                 foreach (var (method, semanticModel) in classGroup)
                 {
-                    
+
                     var methodName = method.SubOrFunctionStatement.Identifier.Text;
                     var methodReturnType = method.SubOrFunctionStatement.AsClause?.Type.ToString() ?? "Void";
 
@@ -81,7 +81,7 @@ public class RelayCommandGenerator : IIncrementalGenerator
 
 
                     var attributeParams = GetRelayCommandAttributeParameters(method, semanticModel);
-                    
+
                     if (attributeParams.HasCanExecute)
                     {
                         // Find the RelayCommand attribute node
@@ -90,12 +90,8 @@ public class RelayCommandGenerator : IIncrementalGenerator
                             .FirstOrDefault(attr => attr.Name.ToString().Contains("RelayCommand"));
 
                         if (relayCommandAttribute != null)
-                        {
-                            spc.ReportDiagnostic(Diagnostic.Create(
-                                CanExecuteParameterDefined,
-                                relayCommandAttribute.GetLocation(),
-                                methodName));
-                        }
+                            spc.ReportDiagnostic(Diagnostic.Create( CanExecuteParameterDefined, relayCommandAttribute.GetLocation(),methodName));
+
                     }
 
                     //Check if the method has parameters
@@ -127,7 +123,7 @@ public class RelayCommandGenerator : IIncrementalGenerator
                     var asyncRelayCommandOptions = "";
                     if (hasAsyncRelayCommandOptions)
                     {
-                        asyncRelayCommandOptions = String.Join(" Or ", new List<string> { 
+                        asyncRelayCommandOptions = String.Join(" Or ", new List<string> {
                             attributeParams.FlowExceptionsToTaskScheduler ? "CommunityToolkit.Mvvm.Input.AsyncRelayCommandOptions.FlowExceptionsToTaskScheduler" : "",
                             attributeParams.AllowConcurrentExecutions ? "CommunityToolkit.Mvvm.Input.AsyncRelayCommandOptions.AllowConcurrentExecutions" : ""
                         }.Where(s => !string.IsNullOrEmpty(s)));
@@ -137,13 +133,22 @@ public class RelayCommandGenerator : IIncrementalGenerator
                     if (canExecuteMethod is not null && canExecuteReturnType == "Boolean")
                     {
                         sb.AppendLine($"    Public ReadOnly Property {methodName}Command As {relayCommandInterfaceType} = New {relayedCommandType}{ofType}(AddressOf {methodName}, AddressOf {canExecuteMethodName} {(hasAsyncRelayCommandOptions ? ", options:= " + asyncRelayCommandOptions : String.Empty)})");
-                    }else
+                    } else
                     {
                         sb.AppendLine($"    Public ReadOnly Property {methodName}Command As {relayCommandInterfaceType} = New {relayedCommandType}{ofType}(AddressOf {methodName} {(hasAsyncRelayCommandOptions ? ", options:= " + asyncRelayCommandOptions : String.Empty)})");
                     }
 
                     if (attributeParams.IncludeCancellationCommand && isAsync)
                     {
+                        bool hasValidCancellationToken =
+                            (parameters.Count > 1 && parameters[1].AsClause?.Type?.ToString() == "CancellationToken") ||
+                            (parameters.Count == 1 && parameters[0].AsClause?.Type?.ToString() == "CancellationToken");
+
+                        if (!hasValidCancellationToken)
+                        {
+                            spc.ReportDiagnostic(Diagnostic.Create(MissingCancellationTokenError, method.SubOrFunctionStatement.Identifier.GetLocation(), methodName));
+                        }
+
                         sb.AppendLine($"    Public ReadOnly Property {methodName}CancelCommand As System.Windows.Input.ICommand = CommunityToolkit.Mvvm.Input.IAsyncRelayCommandExtensions.CreateCancelCommand({methodName}Command)");
                     }
 
@@ -248,6 +253,22 @@ public class RelayCommandGenerator : IIncrementalGenerator
      category: "Usage",
      DiagnosticSeverity.Warning,
      isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor MissingCancellationTokenError = new DiagnosticDescriptor(
+     id: "IRI005",
+     title: "CancellationToken Required",
+     messageFormat: "Method '{0}' cannot be annotated with the <RelayCommand> attribute specifying to include a cancel command, as it does not map to an asynchronous command type taking a cancellation token",
+     category: "Usage",
+     DiagnosticSeverity.Error,
+     isEnabledByDefault: true);
+
+
+
+
+
+
+
+
 
     private static string GetNamespace(SyntaxNode node)
     {
