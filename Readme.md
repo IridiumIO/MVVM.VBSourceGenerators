@@ -6,20 +6,24 @@ The [CommunityToolkit.MVVM](https://github.com/CommunityToolkit/dotnet) source g
 
 ## Working
 
-- `<ObservableProperty>` attribute generates a public property with change notification.
-- `<NotifyPropertyChangedFor(NameOf(T))>` attribute generates a property with change notification for existing properties.
-- `<RelayCommand>`
+- [`<ObservableProperty>`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty) 
+    - Generates a public property with OnPropertyChanged notification as well as most helper methods defined as per the CommunityToolkit.
+- [`<NotifyPropertyChangedFor(NameOf(T))>`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#notifying-dependent-properties) 
+    - Generates a property with change notification for existing properties.
+- [`<RelayCommand>`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/relaycommand)
    - Can decorate `Sub`, `Async Sub`, or `Async Function`
    - Supports `CanExecute` callback functionality
-   - Supports passing a parameter to the command
-
+   - Supports parameter passthrough
+   - Supports `CancellationToken` for async commands
+   - Supports all `RelayCommand` [attribute properties](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/relaycommand) from the CommunityToolkit.MVVM library, *except* for the CanExecute property
+     - CanExecute is defined by simply naming a Sub `Can[MethodName]`.
+- [`NotifyCanExecuteChangedFor(NameOf(T))`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#notifying-dependent-commands)
+   - Use on an `ObservableProperty` to automatically notify the `CanExecute` state of a command when the property changes.
 
 ## Planned
-- `<RelayCommand>`
-   - Passing cancellation tokens
-- `NotifyCanExecuteChangedFor(NameOf(T))`
-
-
+- [Property Validation Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#requesting-property-validation)
+- [INotifyPropertyChanged Attribute](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/inotifypropertychanged)
+- [RelayCommand Custom Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/relaycommand#adding-custom-attributes)
 ## Installation
 
 1. Add the NuGet package for MVVM.VBSourceGenerators to your VB.NET project:
@@ -74,6 +78,8 @@ Partial Public Class PersonViewModel
 End Class
 ```
 
+#### Additional Features:
+- As defined [here](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty), additional methods for On[Name]Changed and On[Name]Changing are also generated as partial methods and can be included. 
 
 ## RelayCommand Usage
 
@@ -98,8 +104,10 @@ Partial Public Class MyViewModel
         ' Logic to select an item
     End Sub
 
-    <RelayCommand>
-    Private Async Function LoadDataAsync() As Task
+    'Will generate two commands:
+    'LoadDataAsyncCommand and CancelLoadDataAsyncCommand
+    <RelayCommand(IncludeCancelCommand:=True)>
+    Private Async Function LoadDataAsync(ctx As CancellationToken) As Task
         ' Load data logic here
         Await Task.Delay(1000) ' Simulating async work
     End Function
