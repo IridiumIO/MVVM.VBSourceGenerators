@@ -52,11 +52,13 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
 
                 var sb = new StringBuilder();
                 if (!string.IsNullOrEmpty(ns)) sb.AppendLine($"Namespace {ns}");
+                sb.AppendLine(@"<Global.System.CodeDom.Compiler.GeneratedCode(""IridiumIO.MVVM.VBSourceGenerators"", ""0.3.0"")>");
                 sb.AppendLine($"Partial Class {className}");
 
                 foreach (var (field, semanticModel) in classGroup)
                 {
                     var dependentProperties = GetDependentProperties(field);
+                    var canExecuteChangedForProperties = GetCanExecuteChangedForProperties(field);
 
                     foreach (var declarator in field.Declarators)
                     {
@@ -73,13 +75,36 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                             sb.AppendLine($"            Return _{fieldName}");
                             sb.AppendLine($"        End Get");
                             sb.AppendLine($"        Set(value As {typeName})");
-                            sb.AppendLine($"            SetProperty(_{fieldName}, value)");
+                            sb.AppendLine($"            If Global.System.Collections.Generic.EqualityComparer(Of {typeName}).Default.Equals(_{fieldName}, value) Then Return");
+                            sb.AppendLine($"            On{propertyName}Changing(value)");
+                            sb.AppendLine($"            On{propertyName}Changing(Nothing, value)");
+                            //TODO: Add support for static reusable OnPropertyChangingEventArgs/OnPropertyChangedEventArgs similar to the C# implementation to minimise allocations
+                            sb.AppendLine($"            OnPropertyChanging(NameOf({propertyName}))");
+                            sb.AppendLine($"            _{fieldName} = value");
+                            sb.AppendLine($"            On{propertyName}Changed(value)");
+                            sb.AppendLine($"            On{propertyName}Changed(Nothing, value)");
+                            sb.AppendLine($"            OnPropertyChanged(NameOf({propertyName}))");
+
                             foreach (var depProp in dependentProperties)
                             {
                             sb.AppendLine($"            OnPropertyChanged(NameOf({depProp}))");
                             }
+                            foreach (var depProp in canExecuteChangedForProperties)
+                            {
+                            sb.AppendLine($"            {depProp}.NotifyCanExecuteChanged()");
+                            }
                             sb.AppendLine($"        End Set");
                             sb.AppendLine($"    End Property");
+
+                            sb.AppendLine();
+
+                            sb.AppendLine($"    Partial Private Sub On{propertyName}Changing(value As {typeName}): End Sub");
+                            sb.AppendLine($"    Partial Private Sub On{propertyName}Changing(oldValue As {typeName}, newValue As {typeName}): End Sub");
+                            sb.AppendLine($"    Partial Private Sub On{propertyName}Changed(value As {typeName}): End Sub");
+                            sb.AppendLine($"    Partial Private Sub On{propertyName}Changed(oldValue As {typeName}, newValue As {typeName}): End Sub");
+
+                            sb.AppendLine();
+
                         }
                     }
                 }
@@ -96,6 +121,32 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
         });
 
 
+    }
+
+    private static List<string> GetCanExecuteChangedForProperties(FieldDeclarationSyntax field)
+    {
+        var canExecuteChangedProperties = new List<string>();
+        foreach (var attributeList in field.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                var attrName = attribute.Name.ToString();
+                if (attrName.Contains("NotifyCanExecuteChangedFor"))
+                {
+                    // Handle multiple arguments if needed
+                    foreach (var arg in attribute.ArgumentList?.Arguments ?? new SeparatedSyntaxList<ArgumentSyntax>())
+                    {
+                        // VB: NameOf(FullName)
+                        if (arg.GetExpression() is NameOfExpressionSyntax nameofExpr)
+                        {
+                            var propName = nameofExpr.Argument.ToString().Trim('"');
+                            canExecuteChangedProperties.Add(propName);
+                        }
+                    }
+                }
+            }
+        }
+        return canExecuteChangedProperties;
     }
 
     private static List<string> GetDependentProperties(FieldDeclarationSyntax field)
