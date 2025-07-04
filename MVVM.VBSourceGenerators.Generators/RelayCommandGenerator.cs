@@ -12,6 +12,7 @@ public class RelayCommandGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+
         // Find all VB.NET methods with <RelayCommand>
         var methodDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
@@ -79,6 +80,24 @@ public class RelayCommandGenerator : IIncrementalGenerator
                     var relayedCommandType = isAsyncFunction ? "CommunityToolkit.MVVM.Input.AsyncRelayCommand" : "CommunityToolkit.MVVM.Input.RelayCommand";
 
 
+                    var attributeParams = GetRelayCommandAttributeParameters(method, semanticModel);
+                    
+                    if (attributeParams.HasCanExecute)
+                    {
+                        // Find the RelayCommand attribute node
+                        var relayCommandAttribute = method.BlockStatement.AttributeLists
+                            .SelectMany(al => al.Attributes)
+                            .FirstOrDefault(attr => attr.Name.ToString().Contains("RelayCommand"));
+
+                        if (relayCommandAttribute != null)
+                        {
+                            spc.ReportDiagnostic(Diagnostic.Create(
+                                CanExecuteParameterDefined,
+                                relayCommandAttribute.GetLocation(),
+                                methodName));
+                        }
+                    }
+
                     //Check if the method has parameters
                     var parameters = method.SubOrFunctionStatement.ParameterList.Parameters;
 
@@ -103,14 +122,30 @@ public class RelayCommandGenerator : IIncrementalGenerator
 
                     var canExecuteReturnType = canExecuteMethod?.SubOrFunctionStatement.AsClause?.Type.ToString() ?? "Boolean";
 
-                    if (canExecuteMethod is not null && canExecuteReturnType == "Boolean")
+
+                    var hasAsyncRelayCommandOptions = attributeParams.AllowConcurrentExecutions || attributeParams.FlowExceptionsToTaskScheduler;
+                    var asyncRelayCommandOptions = "";
+                    if (hasAsyncRelayCommandOptions)
                     {
-                        sb.AppendLine($"    Public ReadOnly Property {methodName}Command As {relayCommandInterfaceType} = New {relayedCommandType}{ofType}(AddressOf {methodName}, AddressOf {canExecuteMethodName})");
-                    }else
-                    {
-                        sb.AppendLine($"    Public ReadOnly Property {methodName}Command As {relayCommandInterfaceType} = New {relayedCommandType}{ofType}(AddressOf {methodName})");
+                        asyncRelayCommandOptions = String.Join(" Or ", new List<string> { 
+                            attributeParams.FlowExceptionsToTaskScheduler ? "CommunityToolkit.Mvvm.Input.AsyncRelayCommandOptions.FlowExceptionsToTaskScheduler" : "",
+                            attributeParams.AllowConcurrentExecutions ? "CommunityToolkit.Mvvm.Input.AsyncRelayCommandOptions.AllowConcurrentExecutions" : ""
+                        }.Where(s => !string.IsNullOrEmpty(s)));
                     }
 
+
+                    if (canExecuteMethod is not null && canExecuteReturnType == "Boolean")
+                    {
+                        sb.AppendLine($"    Public ReadOnly Property {methodName}Command As {relayCommandInterfaceType} = New {relayedCommandType}{ofType}(AddressOf {methodName}, AddressOf {canExecuteMethodName} {(hasAsyncRelayCommandOptions ? ", options:= " + asyncRelayCommandOptions : String.Empty)})");
+                    }else
+                    {
+                        sb.AppendLine($"    Public ReadOnly Property {methodName}Command As {relayCommandInterfaceType} = New {relayedCommandType}{ofType}(AddressOf {methodName} {(hasAsyncRelayCommandOptions ? ", options:= " + asyncRelayCommandOptions : String.Empty)})");
+                    }
+
+                    if (attributeParams.IncludeCancellationCommand && isAsync)
+                    {
+                        sb.AppendLine($"    Public ReadOnly Property {methodName}CancelCommand As System.Windows.Input.ICommand = CommunityToolkit.Mvvm.Input.IAsyncRelayCommandExtensions.CreateCancelCommand({methodName}Command)");
+                    }
 
                 }
 
@@ -128,10 +163,63 @@ public class RelayCommandGenerator : IIncrementalGenerator
 
     }
 
+
+
+
+    private static (
+        bool IncludeCancellationCommand, 
+        bool AllowConcurrentExecutions, 
+        bool FlowExceptionsToTaskScheduler, 
+        bool HasCanExecute)
+        GetRelayCommandAttributeParameters(MethodBlockSyntax method, SemanticModel sem)
+    {
+        bool includeCancelCommand = false;
+        bool allowConcurrentExecutions = false;
+        bool flowExceptionsToTaskScheduler = false;
+        bool canExecuteDefined = false;
+
+        foreach (var attribute in method.BlockStatement.AttributeLists.SelectMany(al => al.Attributes))
+        {
+            if (!attribute.Name.ToString().Contains("RelayCommand")) continue;
+
+            if (attribute.ArgumentList == null) continue;
+
+            foreach (var arg in attribute.ArgumentList.Arguments)
+            {
+                if (arg is not SimpleArgumentSyntax simpleArg || simpleArg.NameColonEquals == null) continue;
+
+                var argName = simpleArg.NameColonEquals.Name.Identifier.Text;
+                var valueOpt = sem.GetConstantValue(simpleArg.Expression);
+
+                if (!valueOpt.HasValue) continue;
+
+                switch (argName)
+                {
+                    case "IncludeCancelCommand":
+                        if (valueOpt.Value is bool b1) includeCancelCommand = b1;
+                        break;
+                    case "AllowConcurrentExecutions":
+                        if (valueOpt.Value is bool b2) allowConcurrentExecutions = b2;
+                        break;
+                    case "FlowExceptionsToTaskScheduler":
+                        if (valueOpt.Value is bool b3) flowExceptionsToTaskScheduler = b3;
+                        break;
+                    case "CanExecute":
+                        canExecuteDefined = true;
+                        break;
+                }
+            }
+        }
+
+        return (includeCancelCommand, allowConcurrentExecutions, flowExceptionsToTaskScheduler, canExecuteDefined);
+    }
+
+
+
     private static readonly DiagnosticDescriptor AsyncSubWarning = new DiagnosticDescriptor(
       id: "IRI001",
       title: "Async Sub is not supported for RelayCommand",
-      messageFormat: "Method '{0}' is an Async Sub. Use Async Function returning Task for async commands.",
+      messageFormat: "Method '{0}' is an Async Sub. Use Async Function returning Task for async RelayCommands.",
       category: "Usage",
       DiagnosticSeverity.Warning,
       isEnabledByDefault: true);
@@ -153,7 +241,13 @@ public class RelayCommandGenerator : IIncrementalGenerator
      DiagnosticSeverity.Error,
      isEnabledByDefault: true);
 
-
+    private static readonly DiagnosticDescriptor CanExecuteParameterDefined = new DiagnosticDescriptor(
+     id: "IRI004",
+     title: "CanExecute property not implemented for RelayCommand attribute",
+     messageFormat: "Method '{0}' describes the 'CanExecute' property which is not supported and will be ignored. You should instead create a method called Can{0}.",
+     category: "Usage",
+     DiagnosticSeverity.Warning,
+     isEnabledByDefault: true);
 
     private static string GetNamespace(SyntaxNode node)
     {
