@@ -82,9 +82,15 @@ public class RelayCommandGenerator : IIncrementalGenerator
                     //Check if the method has parameters
                     var parameters = method.SubOrFunctionStatement.ParameterList.Parameters;
 
-                    // Report diagnostic if too many parameters (I think you can only have one?)
-                    if (parameters.Count > 1)
+                    // Only allow one parameter, or two if the second is a CancellationToken in an async function
+                    if (
+                        (isAsyncFunction && parameters.Count > 2) ||
+                        (!isAsyncFunction && parameters.Count > 1) ||
+                        (isAsyncFunction && parameters.Count == 2 && parameters[1].AsClause?.Type?.ToString() != "CancellationToken")
+                    )
+                    {
                         spc.ReportDiagnostic(Diagnostic.Create(TooManyParametersError, method.SubOrFunctionStatement.Identifier.GetLocation(), methodName));
+                    }
 
                     // If the method has parameters, we need to generate the command with the type of the first parameter
                     var ofType = parameters.Count > 0 ? $"(Of {parameters[0].AsClause.Type})" : string.Empty;
@@ -142,7 +148,7 @@ public class RelayCommandGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor TooManyParametersError = new DiagnosticDescriptor(
      id: "IRI003",
      title: "Multiple parameters are not support for RelayCommands",
-     messageFormat: "Method '{0}' contains multiple parameters. Only one parameter can be used with a RelayCommand",
+     messageFormat: "Method '{0}' contains multiple parameters. Only one parameter can be used with a RelayCommand, except when the second parameter is a CancellationToken in an async method",
      category: "Usage",
      DiagnosticSeverity.Error,
      isEnabledByDefault: true);
