@@ -67,9 +67,28 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                             var fieldName = nameSyntax.Identifier.Text.TrimStart('_');
                             var propertyName = ToPascalCase(fieldName.TrimStart('_'));
                             var asClause = declarator.AsClause as SimpleAsClauseSyntax;
-                            var typeSyntax = asClause?.Type;
-                            var typeInfo = typeSyntax != null ? semanticModel.GetTypeInfo(typeSyntax) : default;
-                            var typeName = typeInfo.Type?.ToDisplayString() ?? "Object";
+                            ITypeSymbol typeSymbol = null;
+
+                            if (asClause?.Type != null)
+                            {   // explicit type
+                                typeSymbol = semanticModel.GetTypeInfo(asClause.Type).Type;
+                            }
+                            else if (declarator.Initializer?.Value is ExpressionSyntax initExpr)
+                            {   // Try to infer type from initializer
+                                typeSymbol = semanticModel.GetTypeInfo(initExpr).Type;
+                            }
+
+                            // Fallback: get declared symbol for the field and use its type
+                            if (typeSymbol == null || typeSymbol.SpecialType == SpecialType.System_Object)
+                            {
+                                var declaredSymbol = semanticModel.GetDeclaredSymbol(declarator.Names.First()) as IFieldSymbol;
+                                if (declaredSymbol != null && declaredSymbol.Type != null)
+                                    typeSymbol = declaredSymbol.Type;
+                            }
+
+                            var typeName = typeSymbol?.ToDisplayString() ?? "Object";
+
+
                             sb.AppendLine($"    Public Property {propertyName} As {typeName}");
                             sb.AppendLine($"        Get");
                             sb.AppendLine($"            Return _{fieldName}");

@@ -22,6 +22,8 @@ Partial Public Class MainWindowViewModel : Inherits ObservableObject
         End Get
     End Property
 
+    <ObservableProperty>
+    Private _NewedUp As New List(Of String)
     Private Sub OnLastNameChanged(value As String)
         Debug.WriteLine($"OnLastNameChanged called with: {value}")
     End Sub
