@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using static MVVM.VBSourceGenerators.Generators.DiagnosticDescriptors;
+using static MVVM.VBSourceGenerators.Generators.SyntaxUtilities;
 
 namespace MVVM.VBSourceGenerators.Generators;
 
@@ -20,17 +21,10 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                 transform: static (ctx, _) =>
                 {
                     var field = (FieldDeclarationSyntax)ctx.Node;
-                    foreach (var attributeList in field.AttributeLists)
-                    {
-                        foreach (var attribute in attributeList.Attributes)
-                        {
-                            var name = attribute.Name.ToString();
-                            if (name.Contains("ObservableProperty"))
-                            {
-                                return (field, ctx.SemanticModel);
-                            }
-                        }
-                    }
+
+                    if (GetFirstAttributeByName(field, "ObservableProperty") is not null)
+                        return (field, ctx.SemanticModel);
+                
                     return default;
                 })
             .Where(static t => t != default);
@@ -53,7 +47,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
 
                 var sb = new StringBuilder();
                 if (!string.IsNullOrEmpty(ns)) sb.AppendLine($"Namespace {ns}");
-                sb.AppendLine(@"<Global.System.CodeDom.Compiler.GeneratedCode(""IridiumIO.MVVM.VBSourceGenerators"", ""0.3.0"")>");
+                sb.AppendLine(@"<Global.System.CodeDom.Compiler.GeneratedCode(""IridiumIO.MVVM.VBSourceGenerators"", ""0.5.0"")>");
                 sb.AppendLine($"Partial Class {className}");
 
                 foreach (var (field, semanticModel) in classGroup)
@@ -138,9 +132,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
     private bool GetCanBroadcastToRecipients(ClassBlockSyntax classNode, FieldDeclarationSyntax field, SemanticModel semanticModel, SourceProductionContext spc)
     {
         // 1. Check for <NotifyPropertyChangedRecipients> on the field
-        bool hasNotifyRecipients = field.AttributeLists
-            .SelectMany(al => al.Attributes)
-            .Any(attr => attr.Name.ToString().Contains("NotifyPropertyChangedRecipients"));
+        bool hasNotifyRecipients = GetAttributesByName(field, "NotifyPropertyChangedRecipients").Any();
 
         if (!hasNotifyRecipients) return false;
 
@@ -151,17 +143,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
             return false;
 
         // Check base types for ObservableRecipient
-        var inheritsObservableRecipient = false;
-        var baseType = classSymbol.BaseType;
-        while (baseType != null)
-        {
-            if (baseType.Name == "ObservableRecipient")
-            {
-                inheritsObservableRecipient = true;
-                break;
-            }
-            baseType = baseType.BaseType;
-        }
+        var inheritsObservableRecipient = InheritsFrom(classSymbol, "ObservableRecipient");
 
         if (!inheritsObservableRecipient)
         {
@@ -201,26 +183,22 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
     private static List<string> GetCanExecuteChangedForProperties(FieldDeclarationSyntax field)
     {
         var canExecuteChangedProperties = new List<string>();
-        foreach (var attributeList in field.AttributeLists)
+        foreach (var attribute in GetAttributesByName(field, "NotifyCanExecuteChangedFor"))
         {
-            foreach (var attribute in attributeList.Attributes)
+
+            // Handle multiple arguments if needed
+            foreach (var arg in attribute.ArgumentList?.Arguments ?? new SeparatedSyntaxList<ArgumentSyntax>())
             {
-                var attrName = attribute.Name.ToString();
-                if (attrName.Contains("NotifyCanExecuteChangedFor"))
+                // VB: NameOf(FullName)
+                if (arg.GetExpression() is NameOfExpressionSyntax nameofExpr)
                 {
-                    // Handle multiple arguments if needed
-                    foreach (var arg in attribute.ArgumentList?.Arguments ?? new SeparatedSyntaxList<ArgumentSyntax>())
-                    {
-                        // VB: NameOf(FullName)
-                        if (arg.GetExpression() is NameOfExpressionSyntax nameofExpr)
-                        {
-                            var propName = nameofExpr.Argument.ToString().Trim('"');
-                            canExecuteChangedProperties.Add(propName);
-                        }
-                    }
+                    var propName = nameofExpr.Argument.ToString().Trim('"');
+                    canExecuteChangedProperties.Add(propName);
                 }
             }
+              
         }
+       
         return canExecuteChangedProperties;
     }
 
@@ -228,46 +206,26 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
     {
         // Collect dependent property names from NotifyPropertyChangedFor
         var dependentProperties = new List<string>();
-        foreach (var attributeList in field.AttributeLists)
+   
+        foreach (var attribute in GetAttributesByName(field, "NotifyPropertyChangedFor"))
         {
-            foreach (var attribute in attributeList.Attributes)
+            
+            // Handle multiple arguments if needed
+            foreach (var arg in attribute.ArgumentList?.Arguments ?? new SeparatedSyntaxList<ArgumentSyntax>())
             {
-                var attrName = attribute.Name.ToString();
-                if (attrName.Contains("NotifyPropertyChangedFor"))
+                // VB: NameOf(FullName)
+                if (arg.GetExpression() is NameOfExpressionSyntax nameofExpr)
                 {
-                    // Handle multiple arguments if needed
-                    foreach (var arg in attribute.ArgumentList?.Arguments ?? new SeparatedSyntaxList<ArgumentSyntax>())
-                    {
-                        // VB: NameOf(FullName)
-                        if (arg.GetExpression() is NameOfExpressionSyntax nameofExpr)
-                        {
-                            var propName = nameofExpr.Argument.ToString().Trim('"');
-                            dependentProperties.Add(propName);
-                        }
-                    }
+                    var propName = nameofExpr.Argument.ToString().Trim('"');
+                    dependentProperties.Add(propName);
                 }
             }
+         
         }
+       
         return dependentProperties;
     }
 
-    private static string GetNamespace(SyntaxNode node)
-    {
-        while (node != null)
-        {
-            if (node is NamespaceBlockSyntax ns)
-                return ns.NamespaceStatement.Name.ToString();
-            node = node.Parent;
-        }
-        return string.Empty;
-    }
-
-    private static string ToPascalCase(string name)
-    {
-        if (string.IsNullOrEmpty(name)) return name;
-        if (name.Length == 1) return name.ToUpper();
-        return char.ToUpper(name[0]) + name.Substring(1);
-    }
-
+  
 
 }

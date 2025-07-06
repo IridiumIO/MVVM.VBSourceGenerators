@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using static MVVM.VBSourceGenerators.Generators.DiagnosticDescriptors;
+using static MVVM.VBSourceGenerators.Generators.SyntaxUtilities;
 
 namespace MVVM.VBSourceGenerators.Generators;
 
@@ -210,21 +211,6 @@ public class RelayCommandGenerator : IIncrementalGenerator
 
 
 
-    private static IEnumerable<AttributeSyntax> GetAttributesByName(MethodBlockSyntax method, string attributeName)
-    {
-        return method.BlockStatement.AttributeLists
-            .SelectMany(al => al.Attributes)
-            .Where(attr => attr.Name.ToString().Contains(attributeName));
-    }
-
-    private static AttributeSyntax? GetFirstAttributeByName(MethodBlockSyntax method, string attributeName)
-    {
-        return method.BlockStatement.AttributeLists
-            .SelectMany(al => al.Attributes)
-            .FirstOrDefault(attr => attr.Name.ToString().Contains(attributeName));
-    }
-
-
     private static bool IsTaskReturnType(SemanticModel semanticModel, MethodBlockSyntax method)
     {
         var asClause = method.SubOrFunctionStatement.AsClause;
@@ -246,23 +232,6 @@ public class RelayCommandGenerator : IIncrementalGenerator
     }
 
 
-    private static string GetNamespace(SyntaxNode node)
-    {
-        while (node != null)
-        {
-            if (node is NamespaceBlockSyntax ns)
-                return ns.NamespaceStatement.Name.ToString();
-            node = node.Parent;
-        }
-        return string.Empty;
-    }
-
-    private static string ToPascalCase(string name)
-    {
-        if (string.IsNullOrEmpty(name)) return name;
-        if (name.Length == 1) return name.ToUpper();
-        return char.ToUpper(name[0]) + name.Substring(1);
-    }
 
 
 }
