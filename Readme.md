@@ -24,6 +24,10 @@ The [CommunityToolkit.MVVM](https://github.com/CommunityToolkit/dotnet) source g
 - [Property Validation Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#requesting-property-validation)
 - [INotifyPropertyChanged Attribute](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/inotifypropertychanged)
 - [RelayCommand Custom Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/relaycommand#adding-custom-attributes)
+
+## Other TODO
+- [ ] Add On`PropertyName`Changed parameterless overload (currently only works if a parameter is passed)
+
 ## Installation
 
 1. Add the NuGet package for MVVM.VBSourceGenerators to your VB.NET project:
