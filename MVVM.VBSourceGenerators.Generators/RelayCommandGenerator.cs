@@ -21,17 +21,9 @@ public class RelayCommandGenerator : IIncrementalGenerator
                 transform: static (ctx, _) =>
                 {
                     var method = (MethodBlockSyntax)ctx.Node;
-                    foreach (var attributeList in method.BlockStatement.AttributeLists)
-                    {
-                        foreach (var attribute in attributeList.Attributes)
-                        {
-                            var name = attribute.Name.ToString();
-                            if (name.Contains("RelayCommand"))
-                            {
-                                return (method, ctx.SemanticModel);
-                            }
-                        }
-                    }
+                    if (GetAttributesByName(method, "RelayCommand").Any()) 
+                        return (method, ctx.SemanticModel);
+                   
                     return default;
                 })
             .Where(static t => t != default);
@@ -63,17 +55,17 @@ public class RelayCommandGenerator : IIncrementalGenerator
                     var methodReturnType = method.SubOrFunctionStatement.AsClause?.Type.ToString() ?? "Void";
 
                     // Check if the method is async
-                    var isAsync = method.SubOrFunctionStatement.Modifiers.Any(m => m.Text == "Async");
+                    var isAsync = method.SubOrFunctionStatement.Modifiers.Any(m => m.IsKind(Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.AsyncKeyword));
                     var isFunction = method.SubOrFunctionStatement.Kind() == Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.FunctionStatement;
                     var isAsyncSub = isAsync && !isFunction;
-                    var isAsyncFunction = isAsync && isFunction && methodReturnType.Contains("Task");
+                    var isAsyncFunction = isAsync && isFunction && IsTaskReturnType(semanticModel, method);
 
                     // Report diagnostic if Async Sub
                     if (isAsyncSub)
                         spc.ReportDiagnostic(Diagnostic.Create(AsyncSubWarning, method.SubOrFunctionStatement.Identifier.GetLocation(), methodName));
 
                     // Report diagnostic if non-async Function
-                    if (isFunction && !isAsync && !methodReturnType.Contains("Task"))
+                    if (isFunction && !isAsync && !IsTaskReturnType(semanticModel, method))
                         spc.ReportDiagnostic(Diagnostic.Create(SyncFunctionWarning, method.SubOrFunctionStatement.Identifier.GetLocation(), methodName));
 
 
@@ -86,10 +78,7 @@ public class RelayCommandGenerator : IIncrementalGenerator
                     if (attributeParams.HasCanExecute)
                     {
                         // Find the RelayCommand attribute node
-                        var relayCommandAttribute = method.BlockStatement.AttributeLists
-                            .SelectMany(al => al.Attributes)
-                            .FirstOrDefault(attr => attr.Name.ToString().Contains("RelayCommand"));
-
+                        var relayCommandAttribute = GetFirstAttributeByName(method, "RelayCommand");
                         if (relayCommandAttribute != null)
                             spc.ReportDiagnostic(Diagnostic.Create( CanExecuteParameterDefined, relayCommandAttribute.GetLocation(),methodName));
 
@@ -184,36 +173,35 @@ public class RelayCommandGenerator : IIncrementalGenerator
         bool flowExceptionsToTaskScheduler = false;
         bool canExecuteDefined = false;
 
-        foreach (var attribute in method.BlockStatement.AttributeLists.SelectMany(al => al.Attributes))
+        var attribute = GetFirstAttributeByName(method, "RelayCommand");
+
+        if (attribute == null || attribute.ArgumentList == null)
+            return (includeCancelCommand, allowConcurrentExecutions, flowExceptionsToTaskScheduler, canExecuteDefined);
+
+
+        foreach (var arg in attribute.ArgumentList.Arguments)
         {
-            if (!attribute.Name.ToString().Contains("RelayCommand")) continue;
+            if (arg is not SimpleArgumentSyntax simpleArg || simpleArg.NameColonEquals == null) continue;
 
-            if (attribute.ArgumentList == null) continue;
+            var argName = simpleArg.NameColonEquals.Name.Identifier.Text;
+            var valueOpt = sem.GetConstantValue(simpleArg.Expression);
 
-            foreach (var arg in attribute.ArgumentList.Arguments)
+            if (!valueOpt.HasValue) continue;
+
+            switch (argName)
             {
-                if (arg is not SimpleArgumentSyntax simpleArg || simpleArg.NameColonEquals == null) continue;
-
-                var argName = simpleArg.NameColonEquals.Name.Identifier.Text;
-                var valueOpt = sem.GetConstantValue(simpleArg.Expression);
-
-                if (!valueOpt.HasValue) continue;
-
-                switch (argName)
-                {
-                    case "IncludeCancelCommand":
-                        if (valueOpt.Value is bool b1) includeCancelCommand = b1;
-                        break;
-                    case "AllowConcurrentExecutions":
-                        if (valueOpt.Value is bool b2) allowConcurrentExecutions = b2;
-                        break;
-                    case "FlowExceptionsToTaskScheduler":
-                        if (valueOpt.Value is bool b3) flowExceptionsToTaskScheduler = b3;
-                        break;
-                    case "CanExecute":
-                        canExecuteDefined = true;
-                        break;
-                }
+                case "IncludeCancelCommand":
+                    if (valueOpt.Value is bool b1) includeCancelCommand = b1;
+                    break;
+                case "AllowConcurrentExecutions":
+                    if (valueOpt.Value is bool b2) allowConcurrentExecutions = b2;
+                    break;
+                case "FlowExceptionsToTaskScheduler":
+                    if (valueOpt.Value is bool b3) flowExceptionsToTaskScheduler = b3;
+                    break;
+                case "CanExecute":
+                    canExecuteDefined = true;
+                    break;
             }
         }
 
@@ -222,12 +210,40 @@ public class RelayCommandGenerator : IIncrementalGenerator
 
 
 
+    private static IEnumerable<AttributeSyntax> GetAttributesByName(MethodBlockSyntax method, string attributeName)
+    {
+        return method.BlockStatement.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .Where(attr => attr.Name.ToString().Contains(attributeName));
+    }
+
+    private static AttributeSyntax? GetFirstAttributeByName(MethodBlockSyntax method, string attributeName)
+    {
+        return method.BlockStatement.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .FirstOrDefault(attr => attr.Name.ToString().Contains(attributeName));
+    }
 
 
+    private static bool IsTaskReturnType(SemanticModel semanticModel, MethodBlockSyntax method)
+    {
+        var asClause = method.SubOrFunctionStatement.AsClause;
+        if (asClause?.Type is not TypeSyntax typeSyntax)
+            return false;
 
+        var typeSymbol = semanticModel.GetTypeInfo(typeSyntax).Type;
+        if (typeSymbol == null)
+            return false;
 
-
-
+        // Check for System.Threading.Tasks.Task or System.Threading.Tasks.Task(Of T)
+        if (typeSymbol is INamedTypeSymbol namedType)
+        {
+            var ns = namedType.ContainingNamespace.ToDisplayString();
+            if (ns == "System.Threading.Tasks" && namedType.Name == "Task")
+                return true;
+        }
+        return false;
+    }
 
 
     private static string GetNamespace(SyntaxNode node)
