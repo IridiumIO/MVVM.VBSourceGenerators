@@ -59,6 +59,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                 {
                     var dependentProperties = GetDependentProperties(field);
                     var canExecuteChangedForProperties = GetCanExecuteChangedForProperties(field);
+                    bool broadcastPropertyChangedToRecipients = GetCanBroadcastToRecipients(classNode, field, semanticModel);
 
                     foreach (var declarator in field.Declarators)
                     {
@@ -74,6 +75,12 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                             sb.AppendLine($"        End Get");
                             sb.AppendLine($"        Set(value As {typeName})");
                             sb.AppendLine($"            If Global.System.Collections.Generic.EqualityComparer(Of {typeName}).Default.Equals(_{fieldName}, value) Then Return");
+                            
+                            if (broadcastPropertyChangedToRecipients)
+                            {
+                            sb.AppendLine($"            Dim _oldValue As {typeName} = _{fieldName}");
+                            }
+
                             sb.AppendLine($"            On{propertyName}Changing(value)");
                             sb.AppendLine($"            On{propertyName}Changing(Nothing, value)");
                             //TODO: Add support for static reusable OnPropertyChangingEventArgs/OnPropertyChangedEventArgs similar to the C# implementation to minimise allocations
@@ -91,6 +98,12 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                             {
                                 sb.AppendLine($"            {depProp}.NotifyCanExecuteChanged()");
                             }
+
+                            if (broadcastPropertyChangedToRecipients)
+                            {
+                                sb.AppendLine($"            Broadcast(_oldValue, value, \"{propertyName}\")");
+                            }
+
                             sb.AppendLine($"        End Set");
                             sb.AppendLine($"    End Property");
 
@@ -119,6 +132,37 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
         });
 
 
+    }
+
+    private bool GetCanBroadcastToRecipients(ClassBlockSyntax classNode, FieldDeclarationSyntax field, SemanticModel semanticModel)
+    {
+        // 1. Check for <NotifyPropertyChangedRecipients> on the field
+        bool hasNotifyRecipients = field.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .Any(attr => attr.Name.ToString().Contains("NotifyPropertyChangedRecipients"));
+
+        if (!hasNotifyRecipients) return false;
+
+        // 2. Check if the class inherits from ObservableRecipient
+
+        var classSymbol = semanticModel.GetDeclaredSymbol(classNode) as INamedTypeSymbol;
+        if (classSymbol == null)
+            return false;
+
+        // Check base types for ObservableRecipient
+        var inheritsObservableRecipient = false;
+        var baseType = classSymbol.BaseType;
+        while (baseType != null)
+        {
+            if (baseType.Name == "ObservableRecipient")
+            {
+                inheritsObservableRecipient = true;
+                break;
+            }
+            baseType = baseType.BaseType;
+        }
+
+        return inheritsObservableRecipient;
     }
 
     private static string GetPropertyTypeName(SemanticModel semanticModel, VariableDeclaratorSyntax declarator)
