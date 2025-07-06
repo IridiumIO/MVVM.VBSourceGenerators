@@ -47,7 +47,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
 
                 var sb = new StringBuilder();
                 if (!string.IsNullOrEmpty(ns)) sb.AppendLine($"Namespace {ns}");
-                sb.AppendLine(@"<Global.System.CodeDom.Compiler.GeneratedCode(""IridiumIO.MVVM.VBSourceGenerators"", ""0.5.0"")>");
+
                 sb.AppendLine($"Partial Class {className}");
 
                 foreach (var (field, semanticModel) in classGroup)
