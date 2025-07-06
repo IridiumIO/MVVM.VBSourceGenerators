@@ -4,7 +4,7 @@ Imports CommunityToolkit.Mvvm.ComponentModel
 Imports CommunityToolkit.Mvvm.Input
 
 
-Partial Public Class MainWindowViewModel : Inherits ObservableObject
+Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
 
 
     <ObservableProperty>

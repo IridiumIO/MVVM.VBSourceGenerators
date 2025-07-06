@@ -66,28 +66,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                         {
                             var fieldName = nameSyntax.Identifier.Text.TrimStart('_');
                             var propertyName = ToPascalCase(fieldName.TrimStart('_'));
-                            var asClause = declarator.AsClause as SimpleAsClauseSyntax;
-                            ITypeSymbol typeSymbol = null;
-
-                            if (asClause?.Type != null)
-                            {   // explicit type
-                                typeSymbol = semanticModel.GetTypeInfo(asClause.Type).Type;
-                            }
-                            else if (declarator.Initializer?.Value is ExpressionSyntax initExpr)
-                            {   // Try to infer type from initializer
-                                typeSymbol = semanticModel.GetTypeInfo(initExpr).Type;
-                            }
-
-                            // Fallback: get declared symbol for the field and use its type
-                            if (typeSymbol == null || typeSymbol.SpecialType == SpecialType.System_Object)
-                            {
-                                var declaredSymbol = semanticModel.GetDeclaredSymbol(declarator.Names.First()) as IFieldSymbol;
-                                if (declaredSymbol != null && declaredSymbol.Type != null)
-                                    typeSymbol = declaredSymbol.Type;
-                            }
-
-                            var typeName = typeSymbol?.ToDisplayString() ?? "Object";
-
+                            string typeName = GetPropertyTypeName(semanticModel, declarator);
 
                             sb.AppendLine($"    Public Property {propertyName} As {typeName}");
                             sb.AppendLine($"        Get");
@@ -106,11 +85,11 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
 
                             foreach (var depProp in dependentProperties)
                             {
-                            sb.AppendLine($"            OnPropertyChanged(NameOf({depProp}))");
+                                sb.AppendLine($"            OnPropertyChanged(NameOf({depProp}))");
                             }
                             foreach (var depProp in canExecuteChangedForProperties)
                             {
-                            sb.AppendLine($"            {depProp}.NotifyCanExecuteChanged()");
+                                sb.AppendLine($"            {depProp}.NotifyCanExecuteChanged()");
                             }
                             sb.AppendLine($"        End Set");
                             sb.AppendLine($"    End Property");
@@ -140,6 +119,32 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
         });
 
 
+    }
+
+    private static string GetPropertyTypeName(SemanticModel semanticModel, VariableDeclaratorSyntax declarator)
+    {
+        var asClause = declarator.AsClause as SimpleAsClauseSyntax;
+        ITypeSymbol typeSymbol = null;
+
+        if (asClause?.Type != null)
+        {   // explicit type
+            typeSymbol = semanticModel.GetTypeInfo(asClause.Type).Type;
+        }
+        else if (declarator.Initializer?.Value is ExpressionSyntax initExpr)
+        {   // Try to infer type from initializer
+            typeSymbol = semanticModel.GetTypeInfo(initExpr).Type;
+        }
+
+        // Fallback: get declared symbol for the field and use its type
+        if (typeSymbol == null || typeSymbol.SpecialType == SpecialType.System_Object)
+        {
+            var declaredSymbol = semanticModel.GetDeclaredSymbol(declarator.Names.First()) as IFieldSymbol;
+            if (declaredSymbol != null && declaredSymbol.Type != null)
+                typeSymbol = declaredSymbol.Type;
+        }
+
+        var typeName = typeSymbol?.ToDisplayString() ?? "Object";
+        return typeName;
     }
 
     private static List<string> GetCanExecuteChangedForProperties(FieldDeclarationSyntax field)
