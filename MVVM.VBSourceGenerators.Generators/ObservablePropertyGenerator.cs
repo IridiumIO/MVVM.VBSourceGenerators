@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using static MVVM.VBSourceGenerators.Generators.DiagnosticDescriptors;
 
 namespace MVVM.VBSourceGenerators.Generators;
 
@@ -59,7 +60,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                 {
                     var dependentProperties = GetDependentProperties(field);
                     var canExecuteChangedForProperties = GetCanExecuteChangedForProperties(field);
-                    bool broadcastPropertyChangedToRecipients = GetCanBroadcastToRecipients(classNode, field, semanticModel);
+                    bool broadcastPropertyChangedToRecipients = GetCanBroadcastToRecipients(classNode, field, semanticModel, spc);
 
                     foreach (var declarator in field.Declarators)
                     {
@@ -134,7 +135,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
 
     }
 
-    private bool GetCanBroadcastToRecipients(ClassBlockSyntax classNode, FieldDeclarationSyntax field, SemanticModel semanticModel)
+    private bool GetCanBroadcastToRecipients(ClassBlockSyntax classNode, FieldDeclarationSyntax field, SemanticModel semanticModel, SourceProductionContext spc)
     {
         // 1. Check for <NotifyPropertyChangedRecipients> on the field
         bool hasNotifyRecipients = field.AttributeLists
@@ -160,6 +161,12 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                 break;
             }
             baseType = baseType.BaseType;
+        }
+
+        if (!inheritsObservableRecipient)
+        {
+            var diagnostic = Diagnostic.Create(MissingObservableRecipientInheritance, field.GetLocation(), classSymbol.Name);
+            spc.ReportDiagnostic(diagnostic);
         }
 
         return inheritsObservableRecipient;
