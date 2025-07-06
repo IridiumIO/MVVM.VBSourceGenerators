@@ -1,6 +1,8 @@
 ﻿Class MainWindow
 
 
+    Private _TestRecipient As TestRecipientViewModel = New TestRecipientViewModel()
+
     Public Sub New()
 
         ' This call is required by the designer.
@@ -8,7 +10,7 @@
 
         Me.DataContext = New MainWindowViewModel()
 
-
+        _TestRecipient.IsActive = True
 
     End Sub
 

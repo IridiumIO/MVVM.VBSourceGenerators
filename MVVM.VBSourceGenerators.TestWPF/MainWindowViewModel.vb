@@ -8,8 +8,12 @@ Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
 
 
     <ObservableProperty>
-    <NotifyPropertyChangedFor(NameOf(FullName))>
     <NotifyPropertyChangedRecipients>
+    Private _RandomObject As RandomClass = New RandomClass()
+
+
+    <ObservableProperty>
+    <NotifyPropertyChangedFor(NameOf(FullName))>
     Private _firstName As String = "John"
 
     <ObservableProperty>
@@ -22,10 +26,12 @@ Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
         End Get
     End Property
 
+
     <ObservableProperty>
     Private _NewedUp As New List(Of String)
     Private Sub OnLastNameChanged(value As String)
         Debug.WriteLine($"OnLastNameChanged called with: {value}")
+        RandomObject = New RandomClass()
     End Sub
 
 
@@ -80,5 +86,11 @@ Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
         Return "Hello from async function"
     End Function
 
+
+End Class
+
+
+
+Public Class RandomClass
 
 End Class
