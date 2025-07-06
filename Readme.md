@@ -18,7 +18,10 @@ The [CommunityToolkit.MVVM](https://github.com/CommunityToolkit/dotnet) source g
    - Supports all `RelayCommand` [attribute properties](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/relaycommand) from the CommunityToolkit.MVVM library, *except* for the CanExecute property
      - CanExecute is defined by simply naming a Sub `Can[MethodName]`.
 - [`NotifyCanExecuteChangedFor(NameOf(T))`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#notifying-dependent-commands)
-   - Use on an `ObservableProperty` to automatically notify the `CanExecute` state of a command when the property changes.
+   - Use on an `ObservableProperty` marked field to automatically notify the `CanExecute` state of a command when the property changes.
+- [`NotifyPropertyChangedRecipients`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#sending-notification-messages)
+   - Use on an `ObservableProperty` marked field to send a message when the property changes
+   - Does not support use on existing properties, only on generated properties.
 
 ## Planned
 - [Property Validation Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#requesting-property-validation)
