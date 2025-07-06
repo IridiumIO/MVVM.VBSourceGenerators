@@ -1,4 +1,5 @@
-﻿Imports System.Threading
+﻿Imports System.ComponentModel
+Imports System.Threading
 
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports CommunityToolkit.Mvvm.Input
@@ -78,10 +79,38 @@ Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
         Debug.WriteLine($"SetAsyncSub called")
     End Sub
 
-    <RelayCommand(IncludeCancelCommand:=False, AllowConcurrentExecutions:=True, FlowExceptionsToTaskScheduler:=True)>
-    Public Async Function SetAsyncFunction() As Task(Of String)
+
+    'Public ReadOnly Property SetAsyncFunctionCommand As CommunityToolkit.Mvvm.Input.IAsyncRelayCommand = New CommunityToolkit.Mvvm.Input.AsyncRelayCommand(Of Global.System.Threading.CancellationToken)(AddressOf SetAsyncFunction, options:=CommunityToolkit.Mvvm.Input.AsyncRelayCommandOptions.FlowExceptionsToTaskScheduler Or CommunityToolkit.Mvvm.Input.AsyncRelayCommandOptions.AllowConcurrentExecutions)
+    'Public ReadOnly Property SetAsyncFunctionCancelCommand As System.Windows.Input.ICommand = CommunityToolkit.Mvvm.Input.IAsyncRelayCommandExtensions.CreateCancelCommand(SetAsyncFunctionCommand)
+
+    <RelayCommand>
+    Public Async Function SetAsyncFunction(ctoken As CancellationToken) As Task(Of String)
+
+        Await Task.Delay(1000, ctoken)
+        Debug.WriteLine($"SetAsyncFunction called")
+        Return "Hello from async function"
+    End Function
+
+    <RelayCommand>
+    Public Async Function SetAsyncFunction2() As Task(Of String)
 
         Await Task.Delay(1000)
+        Debug.WriteLine($"SetAsyncFunction called")
+        Return "Hello from async function"
+    End Function
+
+    <RelayCommand>
+    Public Async Function SetAsyncFunction3(str As String, cToken As System.Threading.CancellationToken) As Task(Of String)
+
+        Await Task.Delay(1000, cToken)
+        Debug.WriteLine($"SetAsyncFunction called")
+        Return "Hello from async function"
+    End Function
+
+    <RelayCommand>
+    Public Async Function SetAsyncFunction4(cToken As CancellationToken, str As String) As Task(Of String)
+
+        Await Task.Delay(1000, cToken)
         Debug.WriteLine($"SetAsyncFunction called")
         Return "Hello from async function"
     End Function

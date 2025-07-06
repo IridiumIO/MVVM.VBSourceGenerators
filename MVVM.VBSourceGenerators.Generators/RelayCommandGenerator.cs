@@ -92,14 +92,21 @@ public class RelayCommandGenerator : IIncrementalGenerator
                     if (
                         (isAsyncFunction && parameters.Count > 2) ||
                         (!isAsyncFunction && parameters.Count > 1) ||
-                        (isAsyncFunction && parameters.Count == 2 && parameters[1].AsClause?.Type?.ToString() != "CancellationToken")
+                        (isAsyncFunction && parameters.Count == 2 && !IsCancellationToken(parameters[1], semanticModel))
                     )
                     {
                         spc.ReportDiagnostic(Diagnostic.Create(TooManyParametersError, method.SubOrFunctionStatement.Identifier.GetLocation(), methodName));
                     }
 
                     // If the method has parameters, we need to generate the command with the type of the first parameter
-                    var ofType = parameters.Count > 0 ? $"(Of {parameters[0].AsClause.Type})" : string.Empty;
+                    var ofType = string.Empty;
+                    if (parameters.Count > 0 && !IsCancellationToken(parameters[0], semanticModel))
+                    {
+                        var typeSyntax = parameters[0].AsClause?.Type as TypeSyntax;
+                        var typeSymbol = typeSyntax != null ? semanticModel.GetTypeInfo(typeSyntax).Type : null;
+                        var fullTypeName = typeSymbol?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        ofType = $"(Of {fullTypeName})";
+                    }
 
                     //Check if a Function exists called "Can{MethodName} to act as the CanExecute() callback"
                     var canExecuteMethodName = $"Can{methodName}";
@@ -232,6 +239,14 @@ public class RelayCommandGenerator : IIncrementalGenerator
     }
 
 
-
+    private static bool IsCancellationToken(ParameterSyntax parameter, SemanticModel semanticModel)
+    {
+        if (parameter.AsClause?.Type is TypeSyntax typeSyntax)
+        {
+            var typeSymbol = semanticModel.GetTypeInfo(typeSyntax).Type;
+            return typeSymbol?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "Global.System.Threading.CancellationToken";
+        }
+        return false;
+    }
 
 }
