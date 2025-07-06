@@ -8,7 +8,7 @@
     <LangVersion>11.0</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>IridiumIO.MVVM.VBSourceGenerators</PackageId>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <Authors>IridiumIO</Authors>
     <Copyright>Copyright © 2025 IridiumIO</Copyright>
     <PackageProjectUrl>https://github.com/IridiumIO/MVVM.VBSourceGenerators</PackageProjectUrl>
@@ -16,10 +16,10 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>source-generator;mvvm;community-toolkit;mvvm-toolkit</PackageTags>
-    <PackageReleaseNotes>Add support for non-explicity defined fields
+    <PackageReleaseNotes>Add support for NotifyPropertyChangedRecipients attributes on `ObservableProperty` marked fields 
     
-- e.g. Private _MyProperty As New XXX (infers type as XXX)
-- e.g. Private _MyProperty = "Hello" (infers type as String)</PackageReleaseNotes>
+- Fixed error that could occur when decorating an Async Function with `RelayCommand` when the only parameter is a CancellationToken
+- Increased robustness of generated code and in particular detection of particular patterns</PackageReleaseNotes>
     <Description>The Community Toolkit.MVVM source generators only work in C#. This package augments the toolkit to allow most of the generators to work for VB.NET.</Description>
     <PackageReadmeFile>Readme.md</PackageReadmeFile>
   </PropertyGroup>
