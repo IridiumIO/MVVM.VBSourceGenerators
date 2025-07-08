@@ -54,6 +54,9 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                 {
                     var dependentProperties = GetDependentProperties(field);
                     var canExecuteChangedForProperties = GetCanExecuteChangedForProperties(field);
+
+                    var attachableAttributes = GetAttachableAttributes(classNode, field, semanticModel, spc);
+
                     bool broadcastPropertyChangedToRecipients = GetCanBroadcastToRecipients(classNode, field, semanticModel, spc);
 
                     foreach (var declarator in field.Declarators)
@@ -63,6 +66,11 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                             var fieldName = nameSyntax.Identifier.Text.TrimStart('_');
                             var propertyName = ToPascalCase(fieldName.TrimStart('_'));
                             string typeName = GetPropertyTypeName(semanticModel, declarator);
+
+                            foreach (var attachableAttribute in attachableAttributes)
+                            {
+                            sb.AppendLine($"    <{attachableAttribute}>");
+                            }
 
                             sb.AppendLine($"    Public Property {propertyName} As {typeName}");
                             sb.AppendLine($"        Get");
@@ -121,7 +129,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                     sb.AppendLine("End Namespace");
                 }
 
-                spc.AddSource($"{className}.g_ObservableProperties.vb", sb.ToString());
+                spc.AddSource($"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{className}.g.vb", sb.ToString());
             }
 
         });

@@ -99,4 +99,41 @@ public static  class SyntaxUtilities
     }
 
 
+    public static string[] GetAttachableAttributes(ClassBlockSyntax classNode, SyntaxNode node, SemanticModel semanticModel, SourceProductionContext spc)
+    {
+
+        var attributes = GetAttributesByName(node, "AttachAttribute").ToList();
+        var result = new List<string>();
+
+        foreach (var attr in attributes)
+        {
+            // For each argument in the attribute (should be TypeSyntax, e.g., GetType(JsonIgnore))
+            foreach (var arg in attr.ArgumentList?.Arguments ?? new SeparatedSyntaxList<ArgumentSyntax>())
+            {
+
+                var expr = arg.GetExpression();
+
+                if (expr is GetTypeExpressionSyntax getTypeExpr)
+                {
+                    // Get the type symbol for the type in GetType(...)
+                    var typeSymbol = semanticModel.GetTypeInfo(getTypeExpr.Type).Type;
+                    if (typeSymbol != null)
+                    {
+                        // Use the unqualified name for the attribute (e.g., JsonIgnore)
+                        // Optionally, you could use typeSymbol.Name + "Attribute" if you want to support both forms
+                        var attrName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        result.Add(attrName);
+                    }
+                }
+                else if (expr is LiteralExpressionSyntax literal && literal.IsKind(Microsoft.CodeAnalysis.VisualBasic.SyntaxKind.StringLiteralExpression))
+                {
+                 
+                    result.Add(literal.Token.ValueText);
+                }
+            }
+        }
+
+        return result.ToArray();
+    }
+
 }

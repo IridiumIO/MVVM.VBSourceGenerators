@@ -126,7 +126,12 @@ public class RelayCommandGenerator : IIncrementalGenerator
                             attributeParams.AllowConcurrentExecutions ? "CommunityToolkit.Mvvm.Input.AsyncRelayCommandOptions.AllowConcurrentExecutions" : ""
                         }.Where(s => !string.IsNullOrEmpty(s)));
                     }
+                    var attachableAttributes = GetAttachableAttributes(classNode, method, semanticModel, spc);
 
+                    foreach (var attr in attachableAttributes)
+                    {
+                        sb.AppendLine($"    <{attr}>");
+                    }
 
                     if (canExecuteMethod is not null && canExecuteReturnType == "Boolean")
                     {
@@ -158,7 +163,7 @@ public class RelayCommandGenerator : IIncrementalGenerator
                     sb.AppendLine("End Namespace");
                 }
 
-                spc.AddSource($"{className}.g_RelayCommands.vb", sb.ToString());
+                spc.AddSource($"{(string.IsNullOrEmpty(ns) ? "" : ns + ".")}{className}.g.vb", sb.ToString());
             }
 
         });

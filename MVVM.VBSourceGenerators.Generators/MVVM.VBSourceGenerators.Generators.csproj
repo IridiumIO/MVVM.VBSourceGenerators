@@ -8,7 +8,7 @@
     <LangVersion>11.0</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>IridiumIO.MVVM.VBSourceGenerators</PackageId>
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <Authors>IridiumIO</Authors>
     <Copyright>Copyright © 2025 IridiumIO</Copyright>
     <PackageProjectUrl>https://github.com/IridiumIO/MVVM.VBSourceGenerators</PackageProjectUrl>
@@ -16,10 +16,10 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>source-generator;mvvm;community-toolkit;mvvm-toolkit</PackageTags>
-    <PackageReleaseNotes>Add support for NotifyPropertyChangedRecipients attributes on `ObservableProperty` marked fields 
+    <PackageReleaseNotes>Add support for passing-through attributes to generated properties and relaycommands
     
-- Fixed error that could occur when decorating an Async Function with `RelayCommand` when the only parameter is a CancellationToken
-- Increased robustness of generated code and in particular detection of particular patterns</PackageReleaseNotes>
+- Also removes transient Microsoft.CodeAnalysis.VisualBasic dependency
+- Normalised generated filenames to include namespaces when required to avoid collisions with nested types sharing the same name</PackageReleaseNotes>
     <Description>The Community Toolkit.MVVM source generators only work in C#. This package augments the toolkit to allow most of the generators to work for VB.NET.</Description>
     <PackageReadmeFile>Readme.md</PackageReadmeFile>
   </PropertyGroup>
@@ -37,7 +37,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="4.14.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="4.14.0" PrivateAssets="All" GeneratePathProperty="true"/>
   </ItemGroup>
   
   <ItemGroup>
