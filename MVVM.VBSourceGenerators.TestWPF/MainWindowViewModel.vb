@@ -1,5 +1,7 @@
 ﻿Imports System.ComponentModel
+Imports System.Text.Json.Serialization
 Imports System.Threading
+Imports MVVM.VBSourceGenerators.TestNestedLibrary
 
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports CommunityToolkit.Mvvm.Input
@@ -7,10 +9,11 @@ Imports CommunityToolkit.Mvvm.Input
 
 Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
 
-
     <ObservableProperty>
+    <AttachAttribute(GetType(JsonIgnoreAttribute)),
+    AttachAttribute("Global.System.Text.Json.Serialization.JsonPropertyName(""RandomStrdfsdfingObject"")")>
     <NotifyPropertyChangedRecipients>
-    Private _RandomObject As RandomClass = New RandomClass()
+    Private _RandomObject As New RandomClass()
 
 
     <ObservableProperty>
@@ -33,6 +36,8 @@ Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
     Private Sub OnLastNameChanged(value As String)
         Debug.WriteLine($"OnLastNameChanged called with: {value}")
         RandomObject = New RandomClass()
+        Dim x As New TestNestedLibrary.Class2
+        x.TestProperty = "Hello interesting world"
     End Sub
 
 
@@ -108,7 +113,7 @@ Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
     End Function
 
     <RelayCommand>
-    Public Async Function SetAsyncFunction4(cToken As CancellationToken, str As String) As Task(Of String)
+    Public Async Function SetAsyncFunction4(str As String, cToken As CancellationToken) As Task(Of String)
 
         Await Task.Delay(1000, cToken)
         Debug.WriteLine($"SetAsyncFunction called")
@@ -119,7 +124,15 @@ Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
 End Class
 
 
-
+Namespace SecondaryNS
+    Partial Public Class MainWindowViewModel : Inherits ObservableRecipient
+        <ObservableProperty>
+        Private _SecondaryName As String = "Secondary"
+        Public Sub New()
+            Debug.WriteLine("SecondaryNS.MainWindowViewModel created")
+        End Sub
+    End Class
+End Namespace
 Public Class RandomClass
 
 End Class

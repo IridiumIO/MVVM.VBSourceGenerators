@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>MVVM.VBSourceGenerators.TestNestedLibrary</RootNamespace>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Analyzer Include="..\MVVM.VBSourceGenerators.Generators\bin\Debug\netstandard2.0\MVVM.VBSourceGenerators.Generators.dll" />
+  </ItemGroup>
+  
+</Project>

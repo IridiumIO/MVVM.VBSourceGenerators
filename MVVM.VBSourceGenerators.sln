@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Readme.md = Readme.md
 	EndProjectSection
 EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "MVVM.VBSourceGenerators.TestNestedLibrary", "MVVM.VBSourceGenerators.TestNestedLibrary\MVVM.VBSourceGenerators.TestNestedLibrary.vbproj", "{1EC1BD1B-49E2-4DBF-9187-AE89BC067CA1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{88BD4492-8557-4BE2-BB95-E4F7101431C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{88BD4492-8557-4BE2-BB95-E4F7101431C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{88BD4492-8557-4BE2-BB95-E4F7101431C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1EC1BD1B-49E2-4DBF-9187-AE89BC067CA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1EC1BD1B-49E2-4DBF-9187-AE89BC067CA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1EC1BD1B-49E2-4DBF-9187-AE89BC067CA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1EC1BD1B-49E2-4DBF-9187-AE89BC067CA1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
