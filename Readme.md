@@ -22,14 +22,16 @@ The [CommunityToolkit.MVVM](https://github.com/CommunityToolkit/dotnet) source g
 - [`NotifyPropertyChangedRecipients`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#sending-notification-messages)
    - Use on an `ObservableProperty` marked field to send a message when the property changes
    - Does not support use on existing properties, only on generated properties.
+- [`AttachAttribute`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#adding-custom-attributes)
+   - Custom implementation of the `[property: Attribute]` C# usage for VB.NET
+   - Passthrough attributes to the generated property by annotating the field/method with e.g `<AttachAttribute(GetType(JsonIgnoreAttribute))>`.
+   - If an attached attribute requires a parameter, it must be passed into AttachAttribute as a fully quality string instead.
 
 ## Planned
-- [Property Validation Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#requesting-property-validation)
-- [INotifyPropertyChanged Attribute](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/inotifypropertychanged)
-- [RelayCommand Custom Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/relaycommand#adding-custom-attributes)
+- [ ] [Property Validation Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#requesting-property-validation)
+- [ ] [INotifyPropertyChanged Attribute](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/inotifypropertychanged)
+- [x] [Custom Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/relaycommand#adding-custom-attributes)
 
-## Other TODO
-- [ ] Add On`PropertyName`Changed parameterless overload (currently only works if a parameter is passed)
 
 ## Installation
 
