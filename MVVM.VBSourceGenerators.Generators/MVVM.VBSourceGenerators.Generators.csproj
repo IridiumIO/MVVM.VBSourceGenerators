@@ -8,7 +8,7 @@
     <LangVersion>11.0</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>IridiumIO.MVVM.VBSourceGenerators</PackageId>
-    <Version>0.6.0</Version>
+    <Version>0.6.1</Version>
     <Authors>IridiumIO</Authors>
     <Copyright>Copyright © 2025 IridiumIO</Copyright>
     <PackageProjectUrl>https://github.com/IridiumIO/MVVM.VBSourceGenerators</PackageProjectUrl>
@@ -17,7 +17,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>source-generator;mvvm;community-toolkit;mvvm-toolkit</PackageTags>
     <PackageReleaseNotes>Add support for passing-through attributes to generated properties and relaycommands
-    
+    Note: V0.6.1 fixes a bug in v0.6.0 that caused WPF internally generated files to fail to compile.
 - Also removes transient Microsoft.CodeAnalysis.VisualBasic dependency
 - Normalised generated filenames to include namespaces when required to avoid collisions with nested types sharing the same name</PackageReleaseNotes>
     <Description>The Community Toolkit.MVVM source generators only work in C#. This package augments the toolkit to allow most of the generators to work for VB.NET.</Description>

@@ -52,7 +52,7 @@ public class CommonAttributeGenerator : IIncrementalGenerator
                         ''' Indicates that the specified attribute(s) should be attached to the generated property
                         ''' corresponding to the decorated field or method. Use this to propagate attributes such as
                         ''' <c>JsonIgnore</c>, <c>Browsable</c>, or any other attribute to the generated property when used in 
-                        ''' conjunction with <see cref="CommunityToolkit.Mvvm.ComponentModel.ObservablePropertyAttribute"/> or <see cref="CommunityToolkit.Mvvm.Input.RelayCommandAttribute"/>.
+                        ''' conjunction with ObservableProperty or RelayCommand.
                         ''' </summary>
                         ''' <remarks>
                         ''' <para>
