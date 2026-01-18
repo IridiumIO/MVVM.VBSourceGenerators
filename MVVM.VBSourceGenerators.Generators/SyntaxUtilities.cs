@@ -136,4 +136,122 @@ public static  class SyntaxUtilities
         return result.ToArray();
     }
 
+    public static void CollectInterfaceTypeNamesFromVariable(IFieldSymbol variableSymbol, HashSet<string> result)
+    {
+        if (variableSymbol == null || result == null) return;
+
+        foreach (var attr in variableSymbol.GetAttributes())
+        {
+            var name = attr.AttributeClass?.Name;
+            if (name == null) continue;
+            if (!name.Equals("ImplementsPropertyAttribute", StringComparison.Ordinal) &&
+                !name.Equals("ImplementsProperty", StringComparison.Ordinal)) continue;
+
+            foreach (var ctorArg in attr.ConstructorArguments)
+            {
+                if (ctorArg.Kind == TypedConstantKind.Type && ctorArg.Value is ITypeSymbol tSym)
+                {
+                    var ifaceName = tSym.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
+                    if (!string.IsNullOrEmpty(ifaceName)) result.Add(ifaceName);
+                }
+                else if (ctorArg.Kind == TypedConstantKind.Primitive && ctorArg.Value is string s && !string.IsNullOrEmpty(s))
+                {
+                    if (s.Contains('.'))
+                    {
+                        var lastDot = s.LastIndexOf('.');
+                        if (lastDot > 0)
+                        {
+                            result.Add(s.Substring(0, lastDot));
+                        }
+                    }
+                }
+            }
+
+            // Named arguments may carry interface type
+            foreach (var named in attr.NamedArguments)
+            {
+                var val = named.Value;
+                if (val.Kind == TypedConstantKind.Type && val.Value is ITypeSymbol tSym2)
+                {
+                    var ifaceName = tSym2.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
+                    if (!string.IsNullOrEmpty(ifaceName)) result.Add(ifaceName);
+                }
+                else if (val.Kind == TypedConstantKind.Primitive && val.Value is string ss && !string.IsNullOrEmpty(ss))
+                {
+                    if (named.Key.IndexOf("interface", StringComparison.OrdinalIgnoreCase) >= 0 && ss.Contains('.'))
+                    {
+                        result.Add(ss);
+                    }
+                }
+            }
+        }
+    }
+
+    public static List<string> GetImplementsEntriesFromVariable(IFieldSymbol variableSymbol)
+    {
+        var implEntries = new List<string>();
+        if (variableSymbol == null) return implEntries;
+
+        var implAttrs = variableSymbol.GetAttributes()
+            .Where(ad =>
+            {
+                var n = ad.AttributeClass?.Name;
+                return n != null && (n.Equals("ImplementsPropertyAttribute", StringComparison.Ordinal) || n.Equals("ImplementsProperty", StringComparison.Ordinal));
+            });
+
+        foreach (var implAttrData in implAttrs)
+        {
+            string impltypeName = null;
+            string memberName = null;
+
+            // constructor args (prefer Type constants)
+            foreach (var ctorArg in implAttrData.ConstructorArguments)
+            {
+                if (ctorArg.Kind == TypedConstantKind.Type && ctorArg.Value is ITypeSymbol tSym)
+                {
+                    impltypeName = tSym.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
+                }
+                else if (ctorArg.Kind == TypedConstantKind.Primitive && ctorArg.Value is string s && !string.IsNullOrEmpty(s))
+                {
+                    if (s.Contains('.'))
+                    {
+                        var lastDot = s.LastIndexOf('.');
+                        memberName ??= s.Substring(lastDot + 1);
+                        impltypeName ??= s.Substring(0, lastDot);
+                    }
+                    else
+                    {
+                        memberName ??= s;
+                    }
+                }
+            }
+
+            // named args fallback
+            foreach (var named in implAttrData.NamedArguments)
+            {
+                var key = named.Key;
+                var val = named.Value;
+                if (val.Kind == TypedConstantKind.Type && val.Value is ITypeSymbol tSym)
+                {
+                    impltypeName ??= tSym.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace("global::", "");
+                }
+                else if (val.Kind == TypedConstantKind.Primitive && val.Value is string ss && !string.IsNullOrEmpty(ss))
+                {
+                    if (key.Equals("MemberName", StringComparison.OrdinalIgnoreCase) || key.Equals("Member", StringComparison.OrdinalIgnoreCase))
+                        memberName ??= ss;
+                    else if (key.IndexOf("interface", StringComparison.OrdinalIgnoreCase) >= 0)
+                        impltypeName ??= ss;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(impltypeName) && !string.IsNullOrEmpty(memberName))
+            {
+                implEntries.Add($"{impltypeName}.{memberName}");
+            }
+        }
+
+        return implEntries;
+    }
+
+
 }

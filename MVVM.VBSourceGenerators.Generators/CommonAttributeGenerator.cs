@@ -110,9 +110,45 @@ public class CommonAttributeGenerator : IIncrementalGenerator
                             End Sub
 
                         End Class
-
                         """;
         ctx.AddSource("AttachAttribute_Attribute.g.vb", sourceCode);
+
+        var implementsSrc = """
+                Imports System
+
+                ''' <summary>
+                ''' Instructs the generator to emit an Implements clause for the generated property.
+                ''' Usage:
+                ''' &lt;ImplementsProperty(GetType(IMyInterface), NameOf(IMyInterface.MyMember))&gt;
+                ''' or
+                ''' &lt;ImplementsProperty("MyNamespace.IMyInterface.MyMember")&gt;
+                ''' </summary>
+                <AttributeUsage(AttributeTargets.Field Or AttributeTargets.Method, AllowMultiple:=True, Inherited:=False)>
+                Public Class ImplementsPropertyAttribute
+                    Inherits Attribute
+
+                    Public ReadOnly InterfaceType As Type
+                    Public ReadOnly MemberName As String
+
+                    Public Sub New(interfaceType As Type, memberName As String)
+                        Me.InterfaceType = interfaceType
+                        Me.MemberName = memberName
+                    End Sub
+
+                    Public Sub New(memberName As String)
+                        Me.MemberName = memberName
+                    End Sub
+
+                    Public Sub New(interfaceType As Type)
+                        Me.InterfaceType = interfaceType
+                    End Sub
+
+                End Class
+
+                """;
+
+        ctx.AddSource("ImplementsProperty_Attribute.g.vb", implementsSrc);
+
     }
 
 

@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.VisualBasic;
 using Microsoft.CodeAnalysis.VisualBasic.Syntax;
 using System;
 using System.Collections.Generic;
@@ -24,7 +25,7 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
 
                     if (GetFirstAttributeByName(field, "ObservableProperty") is not null)
                         return (field, ctx.SemanticModel);
-                
+
                     return default;
                 })
             .Where(static t => t != default);
@@ -45,10 +46,32 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                 var className = classNode.ClassStatement.Identifier.Text;
                 var ns = GetNamespace(classNode);
 
+                // collect interfaces required by any field in this class using semantic AttributeData
+                var classImplements = new HashSet<string>(StringComparer.Ordinal);
+
+                foreach (var (field, semanticModel) in classGroup)
+                {
+                    foreach (var declarator in field.Declarators)
+                    {
+                        foreach (var nameSyntax in declarator.Names)
+                        {
+                            var variableSymbol = semanticModel.GetDeclaredSymbol(nameSyntax) as IFieldSymbol;
+                            if (variableSymbol == null) continue;
+                            CollectInterfaceTypeNamesFromVariable(variableSymbol, classImplements);
+                        }
+                    }
+                }
+
                 var sb = new StringBuilder();
                 if (!string.IsNullOrEmpty(ns)) sb.AppendLine($"Namespace {ns}");
 
-                sb.AppendLine($"Partial Class {className}");
+                // Emit class declaration and append Implements list if present
+                var classHeader = $"Partial Class {className}";
+                sb.AppendLine(classHeader);
+                if (classImplements.Count > 0)
+                {
+                    sb.AppendLine("    Implements " + string.Join(", ", classImplements) + " 'alas");
+                }
 
                 foreach (var (field, semanticModel) in classGroup)
                 {
@@ -67,21 +90,31 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                             var propertyName = ToPascalCase(fieldName.TrimStart('_'));
                             string typeName = GetPropertyTypeName(semanticModel, declarator);
 
-                            foreach (var attachableAttribute in attachableAttributes)
+                            // build implements entries for this variable (may be multiple)
+                            var variableSymbol = semanticModel.GetDeclaredSymbol(nameSyntax) as IFieldSymbol;
+                            var implEntries = variableSymbol is not null ? GetImplementsEntriesFromVariable(variableSymbol) : new List<string>();
+
+                            var implementsClause = "";
+                            if (implEntries.Count > 0)
                             {
-                            sb.AppendLine($"    <{attachableAttribute}>");
+                                implementsClause = " Implements " + string.Join(", ", implEntries);
                             }
 
-                            sb.AppendLine($"    Public Property {propertyName} As {typeName}");
+                            foreach (var attachableAttribute in attachableAttributes)
+                            {
+                                sb.AppendLine($"    <{attachableAttribute}>");
+                            }
+
+                            sb.AppendLine($"    Public Property {propertyName} As {typeName}{implementsClause}");
                             sb.AppendLine($"        Get");
                             sb.AppendLine($"            Return _{fieldName}");
                             sb.AppendLine($"        End Get");
                             sb.AppendLine($"        Set(value As {typeName})");
                             sb.AppendLine($"            If Global.System.Collections.Generic.EqualityComparer(Of {typeName}).Default.Equals(_{fieldName}, value) Then Return");
-                            
+
                             if (broadcastPropertyChangedToRecipients)
                             {
-                            sb.AppendLine($"            Dim _oldValue As {typeName} = _{fieldName}");
+                                sb.AppendLine($"            Dim _oldValue As {typeName} = _{fieldName}");
                             }
 
                             sb.AppendLine($"            On{propertyName}Changing(value)");
@@ -204,9 +237,9 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                     canExecuteChangedProperties.Add(propName);
                 }
             }
-              
+
         }
-       
+
         return canExecuteChangedProperties;
     }
 
@@ -214,10 +247,10 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
     {
         // Collect dependent property names from NotifyPropertyChangedFor
         var dependentProperties = new List<string>();
-   
+
         foreach (var attribute in GetAttributesByName(field, "NotifyPropertyChangedFor"))
         {
-            
+
             // Handle multiple arguments if needed
             foreach (var arg in attribute.ArgumentList?.Arguments ?? new SeparatedSyntaxList<ArgumentSyntax>())
             {
@@ -228,12 +261,12 @@ public class ObservablePropertyGenerator : IIncrementalGenerator
                     dependentProperties.Add(propName);
                 }
             }
-         
+
         }
-       
+
         return dependentProperties;
     }
 
-  
+
 
 }
