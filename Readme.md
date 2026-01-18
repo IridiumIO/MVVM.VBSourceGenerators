@@ -26,6 +26,8 @@ The [CommunityToolkit.MVVM](https://github.com/CommunityToolkit/dotnet) source g
    - Custom implementation of the `[property: Attribute]` C# usage for VB.NET
    - Passthrough attributes to the generated property by annotating the field/method with e.g `<AttachAttribute(GetType(JsonIgnoreAttribute))>`.
    - If an attached attribute requires a parameter, it must be passed into AttachAttribute as a fully qualified string instead.
+- `ImplementsPropertyAttribute`
+   - Allows using interface implementations on Observable properties. See below for an example. 
 
 ## Planned
 - [ ] [Property Validation Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#requesting-property-validation)
@@ -89,6 +91,24 @@ End Class
 
 #### Additional Features:
 - As defined [here](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty), additional methods for On[Name]Changed and On[Name]Changing are also generated as partial methods and can be included. 
+
+**ImplementsProperty**
+
+Often you will need to implement an interface property in your class. For example:
+```vbnet
+Public Class MyViewModel : Implements MyInterface
+    Public Property MyProperty As String Implements MyInterface.MyProperty
+End Class
+```
+This can be converted to an observable property by using the `<ImplementsProperty>` attribute to capture the necessary interface information:
+
+```vbnet
+Partial Public Class MyViewModel : Implements MyInterface
+    <ObservableProperty>
+    <ImplementsProperty(GetType(MyInterface), NameOf(MyInterface.MyProperty))>
+    Private _MyProperty As String
+End Class
+```
 
 ## RelayCommand Usage
 
