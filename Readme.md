@@ -25,7 +25,7 @@ The [CommunityToolkit.MVVM](https://github.com/CommunityToolkit/dotnet) source g
 - [`AttachAttribute`](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#adding-custom-attributes)
    - Custom implementation of the `[property: Attribute]` C# usage for VB.NET
    - Passthrough attributes to the generated property by annotating the field/method with e.g `<AttachAttribute(GetType(JsonIgnoreAttribute))>`.
-   - If an attached attribute requires a parameter, it must be passed into AttachAttribute as a fully quality string instead.
+   - If an attached attribute requires a parameter, it must be passed into AttachAttribute as a fully qualified string instead.
 
 ## Planned
 - [ ] [Property Validation Attributes](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/generators/observableproperty#requesting-property-validation)
